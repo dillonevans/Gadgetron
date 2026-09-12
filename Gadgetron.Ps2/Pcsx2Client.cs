@@ -15,7 +15,15 @@ namespace Gadgetron.Ps2
     public class Pcsx2Client : IAsyncDisposable
     {
         #region Constants
+
         private const int Port = 28011;
+
+        /// <summary>
+        /// Each command starts with 4 bytes to represent the total
+        /// length of the message, followed by 1 byte for the opcode,
+        /// and 4 bytes for the address.
+        /// </summary>
+        private const int BaseCommandSize = sizeof(int) + sizeof(byte) + sizeof(int);
 
         #endregion
 
@@ -75,17 +83,17 @@ namespace Gadgetron.Ps2
         /// <returns>An awaitable <see cref="Task"/> containing the <see cref="byte"/>.</returns>
         public async Task<byte> ReadInt8Async(int address, CancellationToken cancellationToken = default)
         {
-            byte[] bytes =
-            [
-                .. BitConverter.GetBytes(9),
-                (byte)PineCommand.Read8Bits,
-                .. BitConverter.GetBytes(address)
-            ];
-
-            await this.networkStream.Value.WriteAsync(bytes, cancellationToken);
+            byte[] command = CreateCommand(BaseCommandSize, PineCommand.Read8Bits, address);
+            await this.networkStream.Value.WriteAsync(command, cancellationToken);
             
+            // Read the response and return the last byte.
             byte[] response = await this.ReadResponseAsync(cancellationToken);
             return response[^1];
+        }
+
+        private static byte[] CreateCommand(int length, PineCommand command, int address)
+        {
+            return [.. BitConverter.GetBytes(length), (byte)command, .. BitConverter.GetBytes(address)];
         }
 
         /// <summary>
@@ -97,15 +105,10 @@ namespace Gadgetron.Ps2
         /// <returns>An awaitable <see cref="Task"/>.</returns>
         public async Task WriteInt8Async(int address, byte value, CancellationToken cancellationToken = default)
         {
-            byte[] bytes =
-            [
-                .. BitConverter.GetBytes(10),
-                (byte)PineCommand.Write8Bits,
-                .. BitConverter.GetBytes(address),
-                value
-            ];
+            byte[] commandBase = CreateCommand(BaseCommandSize + sizeof(byte), PineCommand.Write8Bits, address);
+            byte[] command = [.. commandBase, value];
 
-            await this.networkStream.Value.WriteAsync(bytes, cancellationToken);
+            await this.networkStream.Value.WriteAsync(command, cancellationToken);
             await this.ReadResponseAsync(cancellationToken);
         }
 
@@ -117,14 +120,10 @@ namespace Gadgetron.Ps2
         /// <returns>An awaitable <see cref="Task"/> containing the <see cref="int"/>.</returns>
         public async Task<int> ReadInt32Async(int address, CancellationToken cancellationToken = default)
         {
-            byte[] bytes =
-            [
-                .. BitConverter.GetBytes(9),
-                (byte)PineCommand.Read32Bits,
-                .. BitConverter.GetBytes(address)
-            ];
+            byte[] command = CreateCommand(BaseCommandSize, PineCommand.Read32Bits, address);
+            await this.networkStream.Value.WriteAsync(command, cancellationToken);
 
-            await this.networkStream.Value.WriteAsync(bytes, cancellationToken);
+            // Return the response and return the last 4 bytes.
             byte[] response = await this.ReadResponseAsync(cancellationToken);
             return BitConverter.ToInt32(response.AsSpan()[^4..]);
         }
@@ -137,15 +136,10 @@ namespace Gadgetron.Ps2
         /// <returns>An awaitable <see cref="Task"/>.</returns>
         public async Task WriteInt32Async(int address, int value, CancellationToken cancellationToken = default)
         {
-            byte[] bytes =
-            [
-                .. BitConverter.GetBytes(13),
-                (byte)PineCommand.Write32Bits,
-                .. BitConverter.GetBytes(address),
-                .. BitConverter.GetBytes(value)
-            ];
+            byte[] commandBase = CreateCommand(BaseCommandSize + sizeof(int), PineCommand.Write8Bits, address);
+            byte[] command = [.. commandBase, .. BitConverter.GetBytes(value)];
 
-            await this.networkStream.Value.WriteAsync(bytes, cancellationToken);
+            await this.networkStream.Value.WriteAsync(command, cancellationToken);
             await this.ReadResponseAsync(cancellationToken);
         }
 
@@ -168,6 +162,7 @@ namespace Gadgetron.Ps2
             // The remainder of the response contains the "argument" which is the actual result.
             int totalMessageSize = BitConverter.ToInt32(messageSizeBuffer);
             int argumentSize = totalMessageSize - resultBuffer.Length - messageSizeBuffer.Length;
+            
             byte[] argumentBuffer = new byte[argumentSize];
             await this.networkStream.Value.ReadExactlyAsync(argumentBuffer, cancellationToken);
 

@@ -1,22 +1,28 @@
 ﻿namespace Gadgetron.RatchetAndClank
 {
-    /// <summary>A weapon in the game.</summary>
-    /// <param name="Name">The name of the weapon.</param>
-    /// <param name="CheckAddress"> The address in RAM in which the item check is performed. </param>
-    public record SimpleWeapon(string Name, int CheckAddress) : IWeapon;
-
-    ///<summary>A weapon in the game that requires ammo.</summary>
-    /// <param name="Name">The name of the weapon.</param>
-    /// <param name="CheckAddress"> The address in RAM in which the item check is performed. </param>
-    /// <param name="AmmoAddress"> The address in RAM in which the ammo count is stored. </param>
-    /// <param name="MaximumAmmo">The maximum ammo capacity for the weapon.</param>
-    public record ArmedWeapon(string Name, int CheckAddress, int AmmoAddress, int MaximumAmmo) : IArmedWeapon;
-
     /// <summary>
     /// Every weapon in the game.
     /// </summary>
     public static class Weapons
     {
+        #region Records
+
+        /// <summary>A weapon in the game.</summary>
+        /// <param name="Name">The name of the weapon.</param>
+        /// <param name="CheckAddress"> The address in RAM in which the item check is performed. </param>
+        private record SimpleWeapon(string Name, int CheckAddress) : IWeapon;
+
+        ///<summary>A weapon in the game that requires ammo.</summary>
+        /// <param name="Name">The name of the weapon.</param>
+        /// <param name="CheckAddress"> The address in RAM in which the item check is performed. </param>
+        /// <param name="AmmoAddress"> The address in RAM in which the ammo count is stored. </param>
+        /// <param name="MaximumAmmo">The maximum ammo capacity for the weapon.</param>
+        private record ArmedWeapon(string Name, int CheckAddress, int AmmoAddress, int MaximumAmmo) : IArmedWeapon;
+
+        #endregion
+
+        #region Fields
+
         public static readonly IArmedWeapon BombGlove = new ArmedWeapon(WeaponNames.BombGlove, CheckAddress: 0x2013D4CA, AmmoAddress: 0x2013D450, MaximumAmmo: 40);
         public static readonly IArmedWeapon Blaster = new ArmedWeapon(WeaponNames.Blaster, CheckAddress: 0x2013D4CF, AmmoAddress: 0x2013D464, MaximumAmmo: 200);
         public static readonly IArmedWeapon DecoyGlove = new ArmedWeapon(WeaponNames.DecoyGlove, CheckAddress: 0x2013D4D9, AmmoAddress: 0x2013D48C, MaximumAmmo: 20);
@@ -33,6 +39,10 @@
         public static readonly IWeapon Walloper = new SimpleWeapon(WeaponNames.Walloper, CheckAddress: 0x2013D4D2);
         public static readonly IArmedWeapon VisibombGun = new ArmedWeapon(WeaponNames.VisibombGun, CheckAddress: 0x2013D4CD, AmmoAddress: 0x2013D45C, MaximumAmmo: 20);
 
+        #endregion
+
+        #region Properties
+
         /// <summary>
         /// Enumerates all weapons.
         /// </summary>
@@ -42,13 +52,13 @@
         /// <summary>
         /// Enumerates all weapons that don't require ammo.
         /// </summary>
-        /// <returns>All <see cref="SimpleWeapon"/> instances.</returns>
+        /// <returns>All weapons that don't require ammo.</returns>
         public static IEnumerable<IWeapon> SimpleWeapons => [Taunter, SuckCannon, Walloper, MorphoRay];
 
         /// <summary>
         /// Enumerates all weapons that require ammo.
         /// </summary>
-        /// <returns>All <see cref="ArmedWeapon"/> instances.</returns>
+        /// <returns>All weapons that require ammo.</returns>
         public static IEnumerable<IArmedWeapon> ArmedWeapons =>
         [
             Blaster,
@@ -63,5 +73,7 @@
             TeslaClaw,
             VisibombGun
         ];
+
+        #endregion
     }
 }
