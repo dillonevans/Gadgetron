@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Microsoft.Extensions.Logging;
+using System.Net;
 using System.Net.Sockets;
 
 namespace Gadgetron.Ps2
@@ -22,15 +23,17 @@ namespace Gadgetron.Ps2
 
         private readonly TcpClient client;
         private readonly Lazy<NetworkStream> networkStream;
+        private readonly ILogger<Pcsx2Client> logger;
 
         #endregion
 
         #region Constructor
 
-        public Pcsx2Client()
+        public Pcsx2Client(ILogger<Pcsx2Client> logger)
         {
             this.client = new TcpClient(AddressFamily.InterNetwork);
             this.networkStream = new Lazy<NetworkStream>(() => this.client.GetStream());
+            this.logger = logger;
         }
 
         #endregion
@@ -44,9 +47,9 @@ namespace Gadgetron.Ps2
         /// <returns>An awaitable <see cref="Task"/>.</returns>
         public async Task ConnectAsync(CancellationToken cancellationToken = default)
         {
-            Console.WriteLine("Connecting to PCSX2 emulator...");
+            this.logger.LogInformation("Connecting to PCSX2 emulator on port {Port}...", Port);
             await this.client.ConnectAsync(IPAddress.Loopback, Port, cancellationToken);
-            Console.WriteLine("Successfully connected to PCSX2 emulator.");
+            this.logger.LogInformation("Successfully connected to PCSX2 emulator on port {Port}.", Port);
         }
 
         /// <summary>
@@ -55,8 +58,6 @@ namespace Gadgetron.Ps2
         /// <returns>An awaitable <see cref="ValueTask"/>.</returns>
         public async ValueTask DisposeAsync()
         {
-            Console.WriteLine("Disposing");
-
             if (this.networkStream.IsValueCreated)
             {
                 await this.networkStream.Value.DisposeAsync().ConfigureAwait(false);

@@ -5,5 +5,6 @@
     <File Path="README.md" />
   </Folder>
   <Project Path="Gadgetron.Ps2/Gadgetron.Ps2.csproj" Id="99070bb8-31ba-47ac-bc76-79decc9cf115" />
+  <Project Path="Gadgetron.RatchetAndClank/Gadgetron.RatchetAndClank.csproj" Id="d216c165-9b23-4bbf-9d39-c56337e40d6c" />
   <Project Path="Gadgetron/Gadgetron.csproj" Id="50af0ff6-3748-45f6-af6b-073fd83a4bda" />
 </Solution>

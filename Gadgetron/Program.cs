@@ -1,4 +1,8 @@
 ﻿using Gadgetron.Ps2;
+using Gadgetron.RatchetAndClank;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Serilog;
 
 namespace Gadgetron
 {
@@ -6,35 +10,20 @@ namespace Gadgetron
     {
         public static async Task Main(string[] args)
         {
-            await ModifyBoltsExample();
-            Console.ReadLine();
-        }
+            var builder = Host.CreateApplicationBuilder(args);
 
-        public static async Task ModifyBoltsExample()
-        {
-            int boltCountAddress = 0x2015ED98;
-            int bombGloveAmmoAddress = 0x2013D450;
-            int rynoAddress = 0x2013D4D7;
-            int visibombGunAddress = 0x2013D4CD;
-            await using var client = new Pcsx2Client();
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(builder.Configuration)
+                .CreateLogger();
 
-            await client.ConnectAsync();
-
-            int currentBoltCount = await client.ReadInt32Async(boltCountAddress);
-            Console.WriteLine($"Current bolt count: {currentBoltCount}");
-
-            int additionalBolts = 100;
-            Console.WriteLine($"Incrementing bolt count to {currentBoltCount + additionalBolts}");
-
-            await client.WriteInt32Async(boltCountAddress, currentBoltCount + additionalBolts);
-            await client.WriteInt32Async(bombGloveAmmoAddress, 50);
-            await client.WriteInt8Async(rynoAddress, 1);
-            int hasRyno = await client.ReadInt8Async(rynoAddress);
-            Console.WriteLine(hasRyno);
+            builder.Services.AddSerilog();
+            builder.Services.AddScoped<Pcsx2Client>();
+            builder.Services.AddScoped<Trainer>();
             
-            await client.WriteInt8Async(visibombGunAddress, 1);
-            int hasVisibomb = await client.ReadInt8Async(visibombGunAddress);
-            Console.WriteLine(hasVisibomb);
+            var host = builder.Build();
+
+            var trainer = host.Services.GetRequiredService<Trainer>();
+            await trainer.RunAsync();
         }
     }
 }

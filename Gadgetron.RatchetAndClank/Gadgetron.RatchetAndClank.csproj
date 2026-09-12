@@ -10,4 +10,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Gadgetron.Ps2\Gadgetron.Ps2.csproj" />
+  </ItemGroup>
+
 </Project>
