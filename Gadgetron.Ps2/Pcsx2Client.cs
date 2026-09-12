@@ -13,9 +13,19 @@ namespace Gadgetron.Ps2
     /// </remarks>
     public class Pcsx2Client : IAsyncDisposable
     {
+        #region Constants
         private const int Port = 28011;
+
+        #endregion
+
+        #region Methods
+
         private readonly TcpClient client;
         private readonly Lazy<NetworkStream> networkStream;
+
+        #endregion
+
+        #region Constructor
 
         public Pcsx2Client()
         {
@@ -23,13 +33,26 @@ namespace Gadgetron.Ps2
             this.networkStream = new Lazy<NetworkStream>(() => this.client.GetStream());
         }
 
-        public async Task Connect(CancellationToken cancellationToken = default)
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Connects to the PCSX2 emulator's server.
+        /// </summary>
+        /// <param name="cancellationToken">The optional cancellation token.</param>
+        /// <returns>An awaitable <see cref="Task"/>.</returns>
+        public async Task ConnectAsync(CancellationToken cancellationToken = default)
         {
             Console.WriteLine("Connecting to PCSX2 emulator...");
             await this.client.ConnectAsync(IPAddress.Loopback, Port, cancellationToken);
             Console.WriteLine("Successfully connected to PCSX2 emulator.");
         }
 
+        /// <summary>
+        /// Disposes the resources used by the client.
+        /// </summary>
+        /// <returns>An awaitable <see cref="ValueTask"/>.</returns>
         public async ValueTask DisposeAsync()
         {
             Console.WriteLine("Disposing");
@@ -44,12 +67,54 @@ namespace Gadgetron.Ps2
         }
 
         /// <summary>
+        /// Reads a byte from the <paramref name="address"/>.
+        /// </summary>
+        /// <param name="address">The address in RAM to read from.</param>
+        /// <param name="cancellationToken">The optional cancellation token.</param>
+        /// <returns>An awaitable <see cref="Task"/> containing the <see cref="byte"/>.</returns>
+        public async Task<byte> ReadInt8Async(int address, CancellationToken cancellationToken = default)
+        {
+            byte[] bytes =
+            [
+                .. BitConverter.GetBytes(9),
+                (byte)PineCommand.Read8Bits,
+                .. BitConverter.GetBytes(address)
+            ];
+
+            await this.networkStream.Value.WriteAsync(bytes, cancellationToken);
+            
+            byte[] response = await this.ReadResponseAsync(cancellationToken);
+            return response[^1];
+        }
+
+        /// <summary>
+        /// Writes the <paramref name="value"/> to the specified <paramref name="address"/>.
+        /// </summary>
+        /// <param name="address">The address in RAM to write the <paramref name="value"/> to.</param>
+        /// <param name="value">The value to write.</param>
+        /// <param name="cancellationToken">The optional cancellation token.</param>
+        /// <returns>An awaitable <see cref="Task"/>.</returns>
+        public async Task WriteInt8Async(int address, byte value, CancellationToken cancellationToken = default)
+        {
+            byte[] bytes =
+            [
+                .. BitConverter.GetBytes(10),
+                (byte)PineCommand.Write8Bits,
+                .. BitConverter.GetBytes(address),
+                value
+            ];
+
+            await this.networkStream.Value.WriteAsync(bytes, cancellationToken);
+            await this.ReadResponseAsync(cancellationToken);
+        }
+
+        /// <summary>
         /// Reads a 32 bit integer from the <paramref name="address"/>.
         /// </summary>
         /// <param name="address">The address in RAM to read from.</param>
         /// <param name="cancellationToken">The optional cancellation token.</param>
-        /// <returns>The value stored at the <paramref name="address"/>.</returns>
-        public async Task<int> ReadInt32(int address, CancellationToken cancellationToken = default)
+        /// <returns>An awaitable <see cref="Task"/> containing the <see cref="int"/>.</returns>
+        public async Task<int> ReadInt32Async(int address, CancellationToken cancellationToken = default)
         {
             byte[] bytes =
             [
@@ -59,35 +124,56 @@ namespace Gadgetron.Ps2
             ];
 
             await this.networkStream.Value.WriteAsync(bytes, cancellationToken);
-
-            byte[] buffer = new byte[9];
-
-            await this.networkStream.Value.ReadExactlyAsync(buffer, cancellationToken);
-            return BitConverter.ToInt32(buffer.AsSpan()[^4..]);
+            byte[] response = await this.ReadResponseAsync(cancellationToken);
+            return BitConverter.ToInt32(response.AsSpan()[^4..]);
         }
 
         /// <summary>
         /// Reads a 32 bit integer from the <paramref name="address"/>.
         /// </summary>
-        /// <param name="address">The address in RAM to write the <paramref name="value"/>.</param>
+        /// <param name="address">The address in RAM to write the <paramref name="value"/> to.</param>
         /// <param name="cancellationToken">The optional cancellation token.</param>
-        /// <returns><see langword="true"/> if the <paramref name="value"/> was written successfully.</returns>
-        public async Task<bool> WriteInt32(int address, int value, CancellationToken cancellationToken = default)
+        /// <returns>An awaitable <see cref="Task"/>.</returns>
+        public async Task WriteInt32Async(int address, int value, CancellationToken cancellationToken = default)
         {
             byte[] bytes =
             [
-                .. BitConverter.GetBytes(13), 
+                .. BitConverter.GetBytes(13),
                 (byte)PineCommand.Write32Bits,
                 .. BitConverter.GetBytes(address),
                 .. BitConverter.GetBytes(value)
             ];
-            
+
             await this.networkStream.Value.WriteAsync(bytes, cancellationToken);
-
-            byte[] buffer = new byte[5];
-            await this.networkStream.Value.ReadExactlyAsync(buffer, cancellationToken);
-
-            return buffer[4] == 0;
+            await this.ReadResponseAsync(cancellationToken);
         }
+
+        /// <summary>
+        /// Reads a response from the network stream and returns it.
+        /// </summary>
+        /// <param name="cancellationToken">The optional cancellation token.</param>
+        /// <returns>The entire response.</returns>
+        private async Task<byte[]> ReadResponseAsync(CancellationToken cancellationToken = default)
+        {
+            // The first 4 bytes contain the total message size including
+            // the bytes allocated for this array.
+            byte[] messageSizeBuffer = new byte[sizeof(int)];
+            await this.networkStream.Value.ReadExactlyAsync(messageSizeBuffer, cancellationToken);
+
+            // The next byte contains the result code which indicates success or failure.
+            byte[] resultBuffer = new byte[sizeof(byte)];
+            await this.networkStream.Value.ReadExactlyAsync(resultBuffer, cancellationToken);
+
+            // The remainder of the response contains the "argument" which is the actual result.
+            int totalMessageSize = BitConverter.ToInt32(messageSizeBuffer);
+            int argumentSize = totalMessageSize - resultBuffer.Length - messageSizeBuffer.Length;
+            byte[] argumentBuffer = new byte[argumentSize];
+            await this.networkStream.Value.ReadExactlyAsync(argumentBuffer, cancellationToken);
+
+            // Return the full response.
+            return [.. messageSizeBuffer, .. resultBuffer, ..argumentBuffer];
+        }
+
+        #endregion
     }
 }
