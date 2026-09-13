@@ -36,16 +36,18 @@ namespace Gadgetron.RatchetAndClank
         {
             await this.client.ConnectAsync();
 
-            int currentBoltCount = await this.client.ReadInt32Async(BoltCountAddress);
-            int targetBoltCount = currentBoltCount * 10;
+            int currentBoltCount = await this.GetBolts();
+            int targetBoltCount = currentBoltCount + 100;
 
-            this.logger.LogInformation("Incrementing bolt count to {UpdatedCount}.", targetBoltCount);
-            this.LogAddressWrite(BoltCountAddress, targetBoltCount);
-            await this.client.WriteInt32Async(BoltCountAddress, targetBoltCount);
-
+            await this.SetBolts(targetBoltCount);
             await this.LockAllWeapons();
             await this.UnlockAllWeapons();
             await this.MaxOutWeapons();
+        }
+
+        public async Task<int> GetBolts()
+        {
+            return await this.client.ReadInt32Async(BoltCountAddress);
         }
         
         public async Task SetBolts(int amount)
@@ -55,6 +57,8 @@ namespace Gadgetron.RatchetAndClank
 
         public async Task UnlockAllWeapons()
         {
+            this.logger.LogInformation("Unlocking all weapons.");
+
             foreach (IWeapon weapon in Weapons.All)
             {
                 await this.UnlockWeapon(weapon);
@@ -80,26 +84,19 @@ namespace Gadgetron.RatchetAndClank
         public async Task LockWeapon(IWeapon weapon)
         {
             this.logger.LogInformation("Removing the {Weapon}.", weapon.Name);
-            this.LogAddressWrite(weapon.CheckAddress, DisabledFlag);
             await this.client.WriteInt8Async(weapon.CheckAddress, DisabledFlag);
         }
 
         public async Task UnlockWeapon(IWeapon weapon)
         {
             this.logger.LogInformation("Giving Ratchet the {Weapon}.", weapon.Name);
-            this.LogAddressWrite(weapon.CheckAddress, EnabledFlag);
             await this.client.WriteInt8Async(weapon.CheckAddress, EnabledFlag);
         }
 
         public async Task SetAmmo(IArmedWeapon weapon, int amount)
         {
-            this.LogAddressWrite(weapon.CheckAddress, amount);
+            this.logger.LogInformation("Setting {Weapon} ammo count to {Count}", weapon.Name, amount);
             await this.client.WriteInt32Async(weapon.AmmoAddress, amount);
-        }
-
-        private void LogAddressWrite<T>(int address, T value)
-        {
-            this.logger.LogDebug("Writing {Value:X} to {Address:X}", value, address);
         }
 
         #endregion

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Gadgetron.RatchetAndClank
+﻿namespace Gadgetron.RatchetAndClank
 {
     /// <summary>
     /// Represents a weapon in the game.
