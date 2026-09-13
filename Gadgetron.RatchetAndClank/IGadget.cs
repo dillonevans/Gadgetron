@@ -1,9 +1,9 @@
 ﻿namespace Gadgetron.RatchetAndClank
 {
     /// <summary>
-    /// Represents a weapon in the game.
+    /// Represents a gadget in the game.
     /// </summary>
-    public interface IWeapon : IInventoryItem
+    public interface IGadget : IInventoryItem
     {
     }
 }

@@ -40,29 +40,29 @@ namespace Gadgetron.RatchetAndClank
             int targetBoltCount = currentBoltCount + 100;
 
             await this.SetBolts(targetBoltCount);
-            await this.LockAllWeapons();
-            await this.UnlockAllWeapons();
-            await this.MaxOutWeapons();
-        }
-
-        public async Task<int> GetBolts()
-        {
-            return await this.client.ReadInt32Async(BoltCountAddress);
-        }
-        
-        public async Task SetBolts(int amount)
-        {
-            await this.client.WriteInt32Async(BoltCountAddress, amount);
+            await this.UnlockAllItems();
         }
 
         public async Task UnlockAllWeapons()
         {
-            this.logger.LogInformation("Unlocking all weapons.");
-
             foreach (IWeapon weapon in Weapons.All)
             {
                 await this.UnlockWeapon(weapon);
             }
+        }
+
+        public async Task UnlockAllGadgets()
+        {
+            foreach (IGadget gadget in Gadgets.All)
+            {
+                await this.UnlockGadget(gadget);
+            }
+        }
+
+        public async Task UnlockAllItems()
+        {
+            await this.UnlockAllWeapons();
+            await this.UnlockAllGadgets();
         }
 
         public async Task LockAllWeapons()
@@ -73,6 +73,58 @@ namespace Gadgetron.RatchetAndClank
             }
         }
 
+        public async Task LockAllGadgets()
+        {
+            foreach (IGadget gadget in Gadgets.All)
+            {
+                await this.LockGadget(gadget);
+            }
+        }
+
+        public async Task LockAllItems()
+        {
+            await this.LockAllWeapons();
+            await this.LockAllGadgets();
+        }
+
+        public async Task LockWeapon(IWeapon weapon)
+        {
+            await this.LockItem(weapon);
+        }
+
+        public async Task UnlockWeapon(IWeapon weapon)
+        {
+            await this.UnlockItem(weapon);
+        }
+
+        public async Task UnlockGadget(IGadget gadget)
+        {
+            await this.UnlockItem(gadget);
+        }
+
+        public async Task LockGadget(IGadget gadget)
+        {
+            await this.LockItem(gadget);
+        }
+
+        public async Task LockItem(IInventoryItem item)
+        {
+            this.logger.LogInformation("Removing the {Item}.", item.Name);
+            await this.client.WriteInt8Async(item.CheckAddress, DisabledFlag);
+        }
+
+        public async Task UnlockItem(IInventoryItem item)
+        {
+            this.logger.LogInformation("Giving Ratchet the {Item}.", item.Name);
+            await this.client.WriteInt8Async(item.CheckAddress, EnabledFlag);
+        }
+
+        public async Task SetAmmo(IArmedWeapon weapon, int amount)
+        {
+            this.logger.LogInformation("Setting {Weapon} ammo count to {Count}", weapon.Name, amount);
+            await this.client.WriteInt32Async(weapon.AmmoAddress, amount);
+        }
+
         public async Task MaxOutWeapons()
         {
             foreach (IArmedWeapon weapon in Weapons.ArmedWeapons)
@@ -81,22 +133,14 @@ namespace Gadgetron.RatchetAndClank
             }
         }
 
-        public async Task LockWeapon(IWeapon weapon)
+        public async Task<int> GetBolts()
         {
-            this.logger.LogInformation("Removing the {Weapon}.", weapon.Name);
-            await this.client.WriteInt8Async(weapon.CheckAddress, DisabledFlag);
+            return await this.client.ReadInt32Async(BoltCountAddress);
         }
 
-        public async Task UnlockWeapon(IWeapon weapon)
+        public async Task SetBolts(int amount)
         {
-            this.logger.LogInformation("Giving Ratchet the {Weapon}.", weapon.Name);
-            await this.client.WriteInt8Async(weapon.CheckAddress, EnabledFlag);
-        }
-
-        public async Task SetAmmo(IArmedWeapon weapon, int amount)
-        {
-            this.logger.LogInformation("Setting {Weapon} ammo count to {Count}", weapon.Name, amount);
-            await this.client.WriteInt32Async(weapon.AmmoAddress, amount);
+            await this.client.WriteInt32Async(BoltCountAddress, amount);
         }
 
         #endregion
