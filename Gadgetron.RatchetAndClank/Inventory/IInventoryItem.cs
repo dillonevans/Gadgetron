@@ -1,4 +1,4 @@
-﻿namespace Gadgetron.RatchetAndClank
+﻿namespace Gadgetron.RatchetAndClank.Inventory
 {
     /// <summary>
     /// Represents an item in Ratchet's inventory.
@@ -13,6 +13,6 @@
         /// <summary>
         /// The address in RAM in which the item check is performed.
         /// </summary>
-        int CheckAddress { get; }
+        uint CheckAddress { get; }
     }
 }

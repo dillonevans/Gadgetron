@@ -83,7 +83,7 @@ namespace Gadgetron.Ps2
         /// <param name="value">The value to write.</param>
         /// <param name="cancellationToken">The optional cancellation token.</param>
         /// <returns>An awaitable <see cref="Task"/>.</returns>
-        public async Task WriteInt8Async(int address, byte value, CancellationToken cancellationToken = default)
+        public async Task WriteInt8Async(uint address, byte value, CancellationToken cancellationToken = default)
         {
             byte[] arguments = [.. GetBytes(address), value];
             await this.SendMessageAsync(PineCommand.Write8Bits, arguments, cancellationToken);
@@ -95,7 +95,7 @@ namespace Gadgetron.Ps2
         /// <param name="address">The address in RAM to write the <paramref name="value"/> to.</param>
         /// <param name="cancellationToken">The optional cancellation token.</param>
         /// <returns>An awaitable <see cref="Task"/>.</returns>
-        public async Task WriteInt32Async(int address, int value, CancellationToken cancellationToken = default)
+        public async Task WriteInt32Async(uint address, int value, CancellationToken cancellationToken = default)
         {
             byte[] arguments = [.. GetBytes(address), .. GetBytes(value)];
             await this.SendMessageAsync(PineCommand.Write32Bits, arguments, cancellationToken);
@@ -107,7 +107,7 @@ namespace Gadgetron.Ps2
         /// <param name="address">The address in RAM to read from.</param>
         /// <param name="cancellationToken">The optional cancellation token.</param>
         /// <returns>An awaitable <see cref="Task"/> containing the <see cref="byte"/>.</returns>
-        public async Task<byte> ReadInt8Async(int address, CancellationToken cancellationToken = default)
+        public async Task<byte> ReadInt8Async(uint address, CancellationToken cancellationToken = default)
         {
             // Read the response and return the last byte.
             byte[] response = await this.SendMessageAsync(PineCommand.Read8Bits, GetBytes(address), cancellationToken);
@@ -120,7 +120,7 @@ namespace Gadgetron.Ps2
         /// <param name="address">The address in RAM to read from.</param>
         /// <param name="cancellationToken">The optional cancellation token.</param>
         /// <returns>An awaitable <see cref="Task"/> containing the <see cref="int"/>.</returns>
-        public async Task<int> ReadInt32Async(int address, CancellationToken cancellationToken = default)
+        public async Task<int> ReadInt32Async(uint address, CancellationToken cancellationToken = default)
         {
             byte[] response = await this.SendMessageAsync(PineCommand.Read32Bits, GetBytes(address), cancellationToken);
             return GetInt32(response[^sizeof(int)..]);
@@ -191,6 +191,19 @@ namespace Gadgetron.Ps2
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>The array.</returns>
+        private static byte[] GetBytes(uint value)
+        {
+            Span<byte> bytes = stackalloc byte[sizeof(int)];
+
+            BinaryPrimitives.WriteUInt32LittleEndian(bytes, value);
+            return bytes.ToArray();
+        }
+
+        /// <summary>
+        /// Converts the <paramref name="value"/> to a little-endian <see cref="byte"/> array.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>The array.</returns>
         private static byte[] GetBytes(int value)
         {
             Span<byte> bytes = stackalloc byte[sizeof(int)];
@@ -208,6 +221,17 @@ namespace Gadgetron.Ps2
         {
             ArgumentNullException.ThrowIfNull(bytes);
             return BinaryPrimitives.ReadInt32LittleEndian(bytes);
+        }
+
+        /// <summary>
+        /// Converts the <paramref name="bytes"/> as little-endian to an <see cref="int"/>.
+        /// </summary>
+        /// <param name="bytes">The bytes to convert.</param>
+        /// <returns>The <see cref="int"/> value.</returns>
+        private static uint GetUInt32(byte[] bytes)
+        {
+            ArgumentNullException.ThrowIfNull(bytes);
+            return BinaryPrimitives.ReadUInt32LittleEndian(bytes);
         }
 
         #endregion

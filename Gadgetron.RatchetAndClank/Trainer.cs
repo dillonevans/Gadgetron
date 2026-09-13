@@ -1,4 +1,6 @@
 ﻿using Gadgetron.Ps2;
+using Gadgetron.RatchetAndClank.Inventory;
+using Gadgetron.RatchetAndClank.Planets;
 using Microsoft.Extensions.Logging;
 
 namespace Gadgetron.RatchetAndClank
@@ -10,6 +12,7 @@ namespace Gadgetron.RatchetAndClank
         private const byte DisabledFlag = 0x00;
         private const byte EnabledFlag = 0x01;
         private const int BoltCountAddress = 0x2015ED98;
+        private const int CurrentPlanetAddress = 0x2015ED84;
 
         #endregion
 
@@ -36,100 +39,76 @@ namespace Gadgetron.RatchetAndClank
         {
             await this.client.ConnectAsync();
 
-            int currentBoltCount = await this.GetBolts();
-            int targetBoltCount = currentBoltCount + 100;
+            await this.Unlock(Item.Items);
+            await this.Unlock(Weapon.Weapons);
+            await this.Unlock(Gadget.Gadgets);
 
-            await this.SetBolts(targetBoltCount);
-            await this.UnlockAllItems();
+            Planet currentPlanet = await this.GetCurrentPlanet();
+            this.logger.LogInformation("The current planet is {Planet}.", currentPlanet.Name);
         }
 
-        public async Task UnlockAllWeapons()
+        public async Task Lock(IEnumerable<IInventoryItem> items)
         {
-            foreach (IWeapon weapon in Weapons.All)
+            ArgumentNullException.ThrowIfNull(items, nameof(items));
+
+            foreach (IInventoryItem item in items)
             {
-                await this.UnlockWeapon(weapon);
+                await this.Lock(item);
             }
         }
 
-        public async Task UnlockAllGadgets()
+        public async Task Unlock(IEnumerable<IInventoryItem> items)
         {
-            foreach (IGadget gadget in Gadgets.All)
+            ArgumentNullException.ThrowIfNull(items, nameof(items));
+
+            foreach (IInventoryItem item in items)
             {
-                await this.UnlockGadget(gadget);
+                await this.Unlock(item);
             }
         }
 
-        public async Task UnlockAllItems()
+        public async Task<Planet> GetCurrentPlanet()
         {
-            await this.UnlockAllWeapons();
-            await this.UnlockAllGadgets();
+            int id = await this.client.ReadInt32Async(CurrentPlanetAddress);
+            return Planet.Planets.Single(planet => planet.Id == id);
         }
 
-        public async Task LockAllWeapons()
+        public async Task Lock(IInventoryItem inventoryItem)
         {
-            foreach (IWeapon weapon in Weapons.All)
+            ArgumentNullException.ThrowIfNull(inventoryItem, nameof(inventoryItem));
+
+            this.logger.LogInformation("Removing the {Item}.", inventoryItem.Name);
+            await this.client.WriteInt8Async(inventoryItem.CheckAddress, DisabledFlag);
+        }
+
+        public async Task Unlock(IInventoryItem inventoryItem)
+        {
+            ArgumentNullException.ThrowIfNull(inventoryItem, nameof(inventoryItem));
+
+            this.logger.LogInformation("Giving Ratchet the {Item}.", inventoryItem.Name);
+            await this.client.WriteInt8Async(inventoryItem.CheckAddress, EnabledFlag);
+        }
+
+        public async Task SetAmmo(Weapon weapon, int amount)
+        {
+            ArgumentNullException.ThrowIfNull(weapon, nameof(weapon));
+
+            if (!weapon.AmmoAddress.HasValue)
             {
-                await this.LockWeapon(weapon);
+                throw new ArgumentException("Weapon does not use ammo.", nameof(weapon));
             }
-        }
 
-        public async Task LockAllGadgets()
-        {
-            foreach (IGadget gadget in Gadgets.All)
-            {
-                await this.LockGadget(gadget);
-            }
-        }
-
-        public async Task LockAllItems()
-        {
-            await this.LockAllWeapons();
-            await this.LockAllGadgets();
-        }
-
-        public async Task LockWeapon(IWeapon weapon)
-        {
-            await this.LockItem(weapon);
-        }
-
-        public async Task UnlockWeapon(IWeapon weapon)
-        {
-            await this.UnlockItem(weapon);
-        }
-
-        public async Task UnlockGadget(IGadget gadget)
-        {
-            await this.UnlockItem(gadget);
-        }
-
-        public async Task LockGadget(IGadget gadget)
-        {
-            await this.LockItem(gadget);
-        }
-
-        public async Task LockItem(IInventoryItem item)
-        {
-            this.logger.LogInformation("Removing the {Item}.", item.Name);
-            await this.client.WriteInt8Async(item.CheckAddress, DisabledFlag);
-        }
-
-        public async Task UnlockItem(IInventoryItem item)
-        {
-            this.logger.LogInformation("Giving Ratchet the {Item}.", item.Name);
-            await this.client.WriteInt8Async(item.CheckAddress, EnabledFlag);
-        }
-
-        public async Task SetAmmo(IArmedWeapon weapon, int amount)
-        {
             this.logger.LogInformation("Setting {Weapon} ammo count to {Count}", weapon.Name, amount);
-            await this.client.WriteInt32Async(weapon.AmmoAddress, amount);
+            await this.client.WriteInt32Async(weapon.AmmoAddress.Value, amount);
         }
 
         public async Task MaxOutWeapons()
         {
-            foreach (IArmedWeapon weapon in Weapons.ArmedWeapons)
+            IEnumerable<Weapon> weaponsWithAmmo = Weapon.Weapons.Where(weapon => weapon.MaximumAmmo.HasValue);
+
+            foreach (Weapon weapon in weaponsWithAmmo)
             {
-                await this.SetAmmo(weapon, weapon.MaximumAmmo);
+                await this.SetAmmo(weapon, weapon.MaximumAmmo!.Value);
             }
         }
 
