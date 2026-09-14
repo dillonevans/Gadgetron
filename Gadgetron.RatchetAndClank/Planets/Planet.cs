@@ -25,14 +25,7 @@
         public static readonly Planet KaleboIII = new("Kalebo III", id: 15);
         public static readonly Planet Veldin = new("Veldin", id: 16);
 
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Enumerates all planets.
-        /// </summary>
-        public static IEnumerable<Planet> Planets =>
+        private static readonly IEnumerable<Planet> planets =
         [
             VeldinTutorial,
             Novalis,
@@ -53,7 +46,20 @@
             Veldin
         ];
 
+        private static readonly Dictionary<int, Planet> planetLookup = planets.ToDictionary(static planet => planet.Id);
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The name of the planet.
+        /// </summary>
         public string Name { get; private set; }
+        
+        /// <summary>
+        /// The unique identifier of the planet.
+        /// </summary>
         public int Id { get; private set;  }
 
         #endregion
@@ -64,6 +70,26 @@
         {
             this.Name = name;
             this.Id = id;
+        }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Returns the <see cref="Planet"/> with the corresponding <paramref name="id"/>, or <see langword="null"/>
+        /// if it cannot be found.
+        /// </summary>
+        /// <param name="id">The Id of the planet.</param>
+        /// <returns>The <see cref="Planet"/> instance, or <see langword="null"/>.</returns>
+        public static Planet? GetById(int id)
+        {
+            if (!planetLookup.TryGetValue(id, out Planet? planet))
+            {
+                return null;
+            }
+
+            return planet;
         }
 
         #endregion

@@ -223,17 +223,6 @@ namespace Gadgetron.Ps2
             return BinaryPrimitives.ReadInt32LittleEndian(bytes);
         }
 
-        /// <summary>
-        /// Converts the <paramref name="bytes"/> as little-endian to an <see cref="int"/>.
-        /// </summary>
-        /// <param name="bytes">The bytes to convert.</param>
-        /// <returns>The <see cref="int"/> value.</returns>
-        private static uint GetUInt32(byte[] bytes)
-        {
-            ArgumentNullException.ThrowIfNull(bytes);
-            return BinaryPrimitives.ReadUInt32LittleEndian(bytes);
-        }
-
         #endregion
     }
 }

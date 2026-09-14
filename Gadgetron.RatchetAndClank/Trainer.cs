@@ -43,8 +43,12 @@ namespace Gadgetron.RatchetAndClank
             await this.Unlock(Weapon.Weapons);
             await this.Unlock(Gadget.Gadgets);
 
-            Planet currentPlanet = await this.GetCurrentPlanet();
-            this.logger.LogInformation("The current planet is {Planet}.", currentPlanet.Name);
+            Planet? currentPlanet = await this.GetCurrentPlanet();
+
+            if (currentPlanet is not null)
+            {
+                this.logger.LogInformation("The current planet is {Planet}.", currentPlanet.Name);
+            }
         }
 
         public async Task Lock(IEnumerable<IInventoryItem> items)
@@ -67,10 +71,10 @@ namespace Gadgetron.RatchetAndClank
             }
         }
 
-        public async Task<Planet> GetCurrentPlanet()
+        public async Task<Planet?> GetCurrentPlanet()
         {
             int id = await this.client.ReadInt32Async(CurrentPlanetAddress);
-            return Planet.Planets.Single(planet => planet.Id == id);
+            return Planet.GetById(id);
         }
 
         public async Task Lock(IInventoryItem inventoryItem)
