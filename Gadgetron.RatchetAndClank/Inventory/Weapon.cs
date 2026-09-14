@@ -9,7 +9,7 @@
 
         public static readonly Weapon BombGlove = new("Bomb Glove", checkAddress: 0x2013D4CA, ammoAddress: 0x2013D450, maximumAmmo: 40);
         public static readonly Weapon Blaster = new("Blaster", checkAddress: 0x2013D4CF, ammoAddress: 0x2013D464, maximumAmmo: 200);
-        public static readonly Weapon DecoyGlove = new("Decoy Gloev", checkAddress: 0x2013D4D9, ammoAddress: 0x2013D48C, maximumAmmo: 20);
+        public static readonly Weapon DecoyGlove = new("Decoy Glove", checkAddress: 0x2013D4D9, ammoAddress: 0x2013D48C, maximumAmmo: 20);
         public static readonly Weapon Devastator = new("Devastator", checkAddress: 0x2013D4CB, ammoAddress: 0x2013D454, maximumAmmo: 20);
         public static readonly Weapon DroneDevice = new("Drone Device", checkAddress: 0x2013D4D8, ammoAddress: 0x2013D488, maximumAmmo: 10);
         public static readonly Weapon GloveOfDoom = new("Glove of Doom", checkAddress: 0x2013D4D4, ammoAddress: 0x2013D478, maximumAmmo: 10);

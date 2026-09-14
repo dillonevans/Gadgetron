@@ -21,11 +21,13 @@
         public static readonly Planet Pokitaru = new("Pokitaru", id: 11);
         public static readonly Planet Hoven = new("Hoven", id: 12);
         public static readonly Planet OltanisOrbit = new("Oltanis Orbit", id: 13);
-        public static readonly Planet Quartu = new("Quartu", id: 14);
-        public static readonly Planet KaleboIII = new("Kalebo III", id: 15);
-        public static readonly Planet Veldin = new("Veldin", id: 16);
+        public static readonly Planet Oltanis = new("Oltanis", id: 14);
+        public static readonly Planet Quartu = new("Quartu", id: 15);
+        public static readonly Planet KaleboIII = new("Kalebo III", id: 16);
+        public static readonly Planet VeldinOrbit = new("Veldin Orbit", id: 17);
+        public static readonly Planet Veldin = new("Veldin", id: 18);
 
-        private static readonly IEnumerable<Planet> planets =
+        private static readonly Planet[] planets =
         [
             VeldinTutorial,
             Novalis,
@@ -40,9 +42,11 @@
             Orxon,
             Pokitaru,
             Hoven,
+            Oltanis,
             OltanisOrbit,
             Quartu,
             KaleboIII,
+            VeldinOrbit,
             Veldin
         ];
 
@@ -61,6 +65,11 @@
         /// The unique identifier of the planet.
         /// </summary>
         public int Id { get; private set;  }
+
+        /// <summary>
+        /// The collection of all planets.
+        /// </summary>
+        public static IReadOnlyCollection<Planet> Planets => planets;
 
         #endregion
 
